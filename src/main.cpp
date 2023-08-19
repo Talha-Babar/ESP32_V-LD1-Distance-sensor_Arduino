@@ -1,4 +1,16 @@
 #include <Arduino.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+double binaryToDouble(uint64_t binaryValue)
+{
+  // Copy the binary value into a double variable
+  double doubleValue;
+  memcpy(&doubleValue, &binaryValue, sizeof(double));
+
+  return doubleValue;
+}
 
 void sendData(const char *alphabet, uint32_t payloadSize, const uint8_t *payloadData)
 {
@@ -60,22 +72,15 @@ uint64_t receiveMessage()
 
 void setup()
 {
-  Serial.begin(9600);
-  // Other setup code
-}
-
-void loop()
-{
-  // Example payload data
-  uint8_t payload[] = {0x01, 0x00, 0x00, 0x00};
+  Serial.begin(115200);
+  uint8_t payload[] = {0x01};
   uint32_t payloadSize = sizeof(payload);
+  uint64_t receivedata;
 
   sendData("INIT", payloadSize, payload);
-
-  // Wait for acknowledgment
   while (!Serial.available())
   {
-    // Wait for data to be available
+    Serial.println("Waiting for data: ");
   }
 
   // Read and process the acknowledgment message
@@ -84,11 +89,44 @@ void loop()
   // Wait for data message
   while (!Serial.available())
   {
-    // Wait for data to be available
+    Serial.println("Waiting for data: ");
   }
 
   // Read and process the data message
   receiveMessage();
+}
+
+void loop()
+{
+  uint8_t payload[] = {0x01};
+  uint32_t payloadSize = sizeof(payload);
+  uint64_t receivedata;
+  float result;
+
+  sendData("GNFD", payloadSize, payload);
+  while (!Serial.available())
+  {
+    Serial.println("Waiting for data: ");
+  }
+
+  // Read and process the acknowledgment message
+  receiveMessage();
+
+  // Wait for data message
+  while (!Serial.available())
+  {
+    Serial.println("Waiting for data: ");
+  }
+
+  // Read and process the data message
+  receivedata = receiveMessage();
+  result = binaryToDouble(receivedata);
+
+  // Print the result
+  Serial.print("Binary: ");
+  Serial.println(receivedata, BIN);
+  Serial.print("Distance: ");
+  Serial.println(result, 4);
 
   // Other loop code
 }
