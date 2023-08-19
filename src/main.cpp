@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#define RX_PIN 13 // GPIO13
+#define TX_PIN 14 // GPIO14
+
 double binaryToDouble(uint64_t binaryValue)
 {
   // Copy the binary value into a double variable
@@ -14,17 +17,18 @@ double binaryToDouble(uint64_t binaryValue)
 
 void sendData(const char *alphabet, uint32_t payloadSize, const uint8_t *payloadData)
 {
-  // Calculate the payload size in network byte order (big-endian)
-  uint32_t payloadSizeNetwork = payloadSize;
 
   // Send the alphabet
-  Serial.write((const uint8_t *)alphabet, 4);
+  for (size_t i = 0; i < strlen(alphabet); i++)
+  {
+    Serial2.write((uint8_t)alphabet[i]);
+  }
 
   // Send the payload size
-  Serial.write((const uint8_t *)&payloadSizeNetwork, sizeof(uint32_t));
+  Serial2.write((const uint8_t *)&payloadSize, sizeof(uint32_t));
 
   // Send the payload data
-  Serial.write(payloadData, payloadSize);
+  Serial2.write(payloadData, payloadSize);
 }
 
 uint64_t receiveMessage()
@@ -33,17 +37,17 @@ uint64_t receiveMessage()
   uint32_t receivedPayloadSize;
 
   // Read the alphabet
-  Serial.readBytes(alphabet, 4);
+  Serial2.readBytes(alphabet, 4);
   alphabet[4] = '\0'; // Null-terminate the string
 
   // Read the payload size
-  Serial.readBytes((char *)&receivedPayloadSize, sizeof(uint32_t));
+  Serial2.readBytes((char *)&receivedPayloadSize, sizeof(uint32_t));
   uint32_t payloadSize = receivedPayloadSize; // Convert back to host byte order
 
   // Read the payload data
   uint8_t payload[payloadSize];
   // uint64_t payloaddata;
-  Serial.readBytes(payload, payloadSize);
+  Serial2.readBytes(payload, payloadSize);
 
   // Process the received message
   Serial.print("Received Alphabet: ");
@@ -73,12 +77,13 @@ uint64_t receiveMessage()
 void setup()
 {
   Serial.begin(115200);
+  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   uint8_t payload[] = {0x01};
   uint32_t payloadSize = sizeof(payload);
   uint64_t receivedata;
 
   sendData("INIT", payloadSize, payload);
-  while (!Serial.available())
+  while (!Serial2.available())
   {
     Serial.println("Waiting for data: ");
   }
@@ -87,7 +92,7 @@ void setup()
   receiveMessage();
 
   // Wait for data message
-  while (!Serial.available())
+  while (!Serial2.available())
   {
     Serial.println("Waiting for data: ");
   }
@@ -104,7 +109,7 @@ void loop()
   float result;
 
   sendData("GNFD", payloadSize, payload);
-  while (!Serial.available())
+  while (!Serial2.available())
   {
     Serial.println("Waiting for data: ");
   }
@@ -113,7 +118,7 @@ void loop()
   receiveMessage();
 
   // Wait for data message
-  while (!Serial.available())
+  while (!Serial2.available())
   {
     Serial.println("Waiting for data: ");
   }
